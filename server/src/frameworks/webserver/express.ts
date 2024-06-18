@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express, { Application, Request } from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -11,9 +11,9 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200, // maximum requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
-  keyGenerator: (req) => {
+  keyGenerator: (req: Request) => {
     const xRealIp = req.headers['x-real-ip'];
-    return xRealIp ? String(xRealIp) : req.ip;
+    return xRealIp ? String(xRealIp) : req.ip || 'unknown-ip';
   }
 });
 

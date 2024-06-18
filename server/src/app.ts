@@ -7,9 +7,14 @@ import routes from './frameworks/webserver/routes';
 import connection from './frameworks/database/redis/connection';
 import colors from 'colors.ts';
 import errorHandlingMiddleware from './frameworks/webserver/middlewares/errorHandling';
-import configKeys from './config'; 
+import configKeys from './config';
 import AppError from './utils/appError';
-import { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from './types/socketInterfaces';
+import {
+  ClientToServerEvents,
+  InterServerEvents,
+  ServerToClientEvents,
+  SocketData
+} from './types/socketInterfaces';
 import { Server } from 'socket.io';
 import socketConfig from './frameworks/websocket/socket';
 import { authService } from './frameworks/services/authService';
@@ -20,21 +25,33 @@ const app: Application = express();
 const server = http.createServer(app);
 
 //* web socket connection
-const io = new Server<ClientToServerEvents,ServerToClientEvents,InterServerEvents,SocketData>(server,{
-  cors:{
-      origin:configKeys.ORIGIN_PORT,
-      methods:["GET","POST"]
-  } 
+const io = new Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData
+>(server, {
+  cors: {
+    origin: configKeys.ORIGIN_PORT,
+    methods: ['GET', 'POST']
+  }
 });
 
-socketConfig(io,authService())  
+socketConfig(io, authService());
 
-//* connecting mongoDb 
+//* connecting mongoDb
+// Connect to MongoDB
 connectToMongoDb();
 
 //* connection to redis
-const redisClient = connection().createRedisClient();
-
+// Connection to Redis
+let redisClient;
+try {
+  redisClient = connection().createRedisClient();
+} catch (err) {
+  console.error('Failed to connect to Redis:', err);
+  process.exit(1); // Exit the process if Redis connection fails
+}
 //* express config connection
 expressConfig(app);
 
@@ -51,5 +68,17 @@ app.all('*', (req, res, next: NextFunction) => {
 
 //* starting the server with server config
 serverConfig(server).startServer();
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Optionally exit the process: process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Optionally exit the process: process.exit(1);
+});
 
 export type RedisClient = typeof redisClient;

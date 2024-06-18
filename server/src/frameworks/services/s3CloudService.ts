@@ -1,26 +1,36 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ObjectCannedACL
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { CloudFrontClient, GetDistributionCommand } from '@aws-sdk/client-cloudfront';
+import {
+  CloudFrontClient,
+  GetDistributionCommand
+} from '@aws-sdk/client-cloudfront';
 import configKeys from '../../config';
 import crypto from 'crypto';
 
 const s3 = new S3Client({
   credentials: {
     accessKeyId: configKeys.AWS_ACCESS_KEY,
-    secretAccessKey: configKeys.AWS_SECRET_KEY,
+    secretAccessKey: configKeys.AWS_SECRET_KEY
   },
-  region: configKeys.AWS_BUCKET_REGION,
+  region: configKeys.AWS_BUCKET_REGION
 });
 
 const cloudFront = new CloudFrontClient({
   credentials: {
     accessKeyId: configKeys.AWS_ACCESS_KEY,
-    secretAccessKey: configKeys.AWS_SECRET_KEY,
+    secretAccessKey: configKeys.AWS_SECRET_KEY
   },
-  region: configKeys.AWS_BUCKET_REGION,
+  region: configKeys.AWS_BUCKET_REGION
 });
 
-const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
+const randomImageName = (bytes = 32) =>
+  crypto.randomBytes(bytes).toString('hex');
 
 export const s3Service = () => {
   const uploadFile = async (file: Express.Multer.File) => {
@@ -29,24 +39,24 @@ export const s3Service = () => {
       Bucket: configKeys.AWS_BUCKET_NAME,
       Key: key,
       Body: file.buffer,
-      ContentType: file.mimetype,
+      ContentType: file.mimetype
     };
     const command = new PutObjectCommand(params);
     await s3.send(command);
     return {
       name: file.originalname,
-      key,
+      key
     };
   };
 
-   const uploadAndGetUrl = async (file: Express.Multer.File) => {
+  const uploadAndGetUrl = async (file: Express.Multer.File) => {
     const key = randomImageName();
     const params = {
       Bucket: configKeys.AWS_BUCKET_NAME,
       Key: key,
       Body: file.buffer,
       ContentType: file.mimetype,
-      ACL: 'public-read', 
+      ACL: ObjectCannedACL.public_read
     };
 
     const command = new PutObjectCommand(params);
@@ -57,23 +67,25 @@ export const s3Service = () => {
     return {
       name: file.originalname,
       key,
-      url,
+      url
     };
   };
 
   const getFile = async (fileKey: string) => {
     const getObjectParams = {
       Bucket: configKeys.AWS_BUCKET_NAME,
-      Key: fileKey,
+      Key: fileKey
     };
     const command = new GetObjectCommand(getObjectParams);
     return await getSignedUrl(s3, command, { expiresIn: 60000 });
   };
 
-  const getVideoStream = async (key: string): Promise<NodeJS.ReadableStream> => {
+  const getVideoStream = async (
+    key: string
+  ): Promise<NodeJS.ReadableStream> => {
     const s3Params = {
       Bucket: configKeys.AWS_BUCKET_NAME,
-      Key: key,
+      Key: key
     };
 
     const command = new GetObjectCommand(s3Params);
@@ -84,7 +96,7 @@ export const s3Service = () => {
 
   const getCloudFrontUrl = async (fileKey: string) => {
     const getDistributionParams = {
-      Id: configKeys.CLOUDFRONT_DISTRIBUTION_ID,
+      Id: configKeys.CLOUDFRONT_DISTRIBUTION_ID
     };
     const command = new GetDistributionCommand(getDistributionParams);
     const { Distribution } = await cloudFront.send(command);
@@ -97,7 +109,7 @@ export const s3Service = () => {
   const removeFile = async (fileKey: string) => {
     const params = {
       Bucket: configKeys.AWS_BUCKET_NAME,
-      Key: fileKey,
+      Key: fileKey
     };
     const command = new DeleteObjectCommand(params);
     await s3.send(command);
@@ -109,7 +121,7 @@ export const s3Service = () => {
     getFile,
     getVideoStream,
     getCloudFrontUrl,
-    removeFile,
+    removeFile
   };
 };
 
