@@ -4,7 +4,7 @@ import { createClient, RedisClientOptions } from 'redis';
 const connection = () => {
   const createRedisClient = () => {
     const clientOptions: RedisClientOptions = {
-      url: 'redis://dailyhealth360-38kqp5.serverless.eun1.cache.amazonaws.com:6379',
+      url: 'redis://localhost:6379',
       socket: {
         connectTimeout: 20000, // Increase the connection timeout to 20 seconds
         reconnectStrategy: (retries: number) => {
